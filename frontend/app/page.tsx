@@ -158,7 +158,7 @@ export default function Home() {
       if (!canvas) return;
 
       const { data } = await axios.post(
-        `${process.env.BASE_API_URL}/calculate-results`,
+        `${process.env.NEXT_PUBLIC_BASE_API_URL}/calculate-results`,
         {
           image: canvas.toDataURL("image/png"), // Conver the canvas to a base64 image
           dict_of_vars: dictOfVars,
