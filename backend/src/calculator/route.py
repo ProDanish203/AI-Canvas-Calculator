@@ -17,4 +17,9 @@ async def calculate_results(data: ImageData):
     data = []
     for response in responses:
         data.append(response)
-    return {"message": "Image processed", "data": data, "status": "success"}
+    return {
+        "message": "Image processed",
+        "data": data,
+        "status": "success",
+        "success": True,
+    }

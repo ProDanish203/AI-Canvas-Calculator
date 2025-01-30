@@ -1,8 +1,8 @@
 "use client";
 
 import { Topbar } from "@/components/shared/Topbar";
-import { GeneratedResult } from "@/lib/types";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { GeneratedResult, ImageResponse } from "@/lib/types";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 
@@ -14,10 +14,17 @@ export default function Home() {
   const [color, setColor] = useState("#ffffff");
   const [result, setResult] = useState<GeneratedResult>();
   const [dictOfVars, setDictOfVars] = useState({});
+  const [latexExpr, setLatexExpr] = useState<string[]>([]);
+  const [latexPosition, setLatexPosition] = useState<{
+    x: number;
+    y: number;
+  }>({ x: 10, y: 200 });
+
   const [canvasStates, setCanvasStates] = useState<string[]>([]);
   const [redoStates, setRedoStates] = useState<string[]>([]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -33,6 +40,23 @@ export default function Home() {
     const initialState = canvas.toDataURL();
     setCanvasStates([initialState]);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!result) return;
+    renderLatexToCanvas(result.expression, result.answer);
+  }, [result]);
+
+  const renderLatexToCanvas = (expression: string, answer: string) => {
+    const latex = `${expression} = ${answer}`;
+    setLatexExpr((prev) => [...prev, latex]);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
 
   // Add useCallback to memoize undo and redo functions
   const undo = useCallback(() => {
@@ -86,6 +110,7 @@ export default function Home() {
 
   // Add new useEffect for keyboard shortcuts
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const handleKeyboard = (e: KeyboardEvent) => {
       if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -150,6 +175,9 @@ export default function Home() {
     // Reset canvas states to initial black state
     const initialState = canvas.toDataURL();
     setCanvasStates([initialState]);
+    setLatexExpr([]);
+    setResult(undefined);
+    setDictOfVars({});
   };
 
   const getResults = async () => {
@@ -160,12 +188,49 @@ export default function Home() {
       const { data } = await axios.post(
         `${process.env.NEXT_PUBLIC_BASE_API_URL}/calculate-results`,
         {
-          image: canvas.toDataURL("image/png"), // Conver the canvas to a base64 image
+          image: canvas.toDataURL("image/png"),
           dict_of_vars: dictOfVars,
         }
       );
+      if (!data.success) return toast.error(data.message);
+      if (data.data.length === 0) return toast.error("No response :(");
 
-      console.log(data);
+      data.data.forEach((res: ImageResponse) => {
+        if (res.assign) {
+          setDictOfVars((prev) => ({ ...prev, [res.expr]: res.result }));
+        }
+      });
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let minX = canvas.width,
+        minY = canvas.height,
+        maxX = 0,
+        maxY = 0;
+
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = y * canvas.width + x;
+          if (imageData.data[i * 4 + 3] > 0) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+
+      setLatexPosition({ x: centerX, y: centerY });
+
+      data.data.forEach((res: ImageResponse) => {
+        setTimeout(() => {
+          setResult({ expression: res.expr, answer: res.result });
+        }, 200);
+      });
     } catch (err) {
       toast.error("Error in getting results");
     }
@@ -191,6 +256,22 @@ export default function Home() {
           onMouseMove={draw}
           className="absolute top-0 left-0 w-full h-full bg-black"
         />
+
+        {latexExpr &&
+          latexExpr.map((latex, idx) => (
+            <div
+              key={idx}
+              className="absolute text-white p-2 sm:text-5xl text-2xl font-bold rounded-md shadow-md"
+              style={{
+                zIndex: 1000,
+                left: `${latexPosition.x}px`,
+                top: `${latexPosition.y + idx * 50}px`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              {latex}
+            </div>
+          ))}
       </div>
     </div>
   );
