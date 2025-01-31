@@ -21,10 +21,19 @@ export const Topbar: React.FC<TopbarProps> = ({
   performRedo,
 }) => {
   return (
-    <div className="z-10 flex items-center justify-between gap-2 sm:px-10 px-2 h-[80px] bg-black">
+    <div className="z-10 flex max-md:flex-col max-md:py-4 items-center justify-between gap-2 sm:px-10 px-2 h-[80px] bg-black">
       {/* Operations */}
       <div className="flex items-center gap-2">
-        <Button className="" onClick={resetCanvas}>
+        <Button
+          className="md:hidden sm:px-10 px-5 bg-green-600 hover:bg-green-700"
+          onClick={getResults}
+        >
+          Run
+        </Button>
+        <Button
+          className="sm:px-10 px-5 bg-red-500 hover:bg-red-600"
+          onClick={resetCanvas}
+        >
           Reset
         </Button>
         <Button className="" onClick={performUndo}>
@@ -35,7 +44,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         </Button>
       </div>
       {/* Color bar to select the color */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-center gap-2 max-sm:overflow-x-scroll min-h-[50px] w-full">
         {COLORS.map((c) => (
           <button
             key={c}
@@ -50,7 +59,10 @@ export const Topbar: React.FC<TopbarProps> = ({
         ))}
       </div>
       {/* Run Button */}
-      <Button className="" onClick={getResults}>
+      <Button
+        className="max-md:hidden px-10 bg-green-600 hover:bg-green-700"
+        onClick={getResults}
+      >
         Run
       </Button>
     </div>

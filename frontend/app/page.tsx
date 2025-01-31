@@ -12,7 +12,7 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState("#ffffff");
-  const [result, setResult] = useState<GeneratedResult>();
+  const [result, setResult] = useState<GeneratedResult[]>();
   const [dictOfVars, setDictOfVars] = useState({});
   const [latexExpr, setLatexExpr] = useState<string[]>([]);
   const [latexPosition, setLatexPosition] = useState<{
@@ -22,6 +22,8 @@ export default function Home() {
 
   const [canvasStates, setCanvasStates] = useState<string[]>([]);
   const [redoStates, setRedoStates] = useState<string[]>([]);
+
+  const TOUCH_Y_OFFSET = -30;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -41,10 +43,32 @@ export default function Home() {
     setCanvasStates([initialState]);
   }, []);
 
+  // To prevent touch scroll
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventDefault = (e: Event) => {
+      e.preventDefault();
+    };
+
+    canvas.addEventListener("touchstart", preventDefault, { passive: false });
+    canvas.addEventListener("touchmove", preventDefault, { passive: false });
+    canvas.addEventListener("touchend", preventDefault, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("touchstart", preventDefault);
+      canvas.removeEventListener("touchmove", preventDefault);
+      canvas.removeEventListener("touchend", preventDefault);
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!result) return;
-    renderLatexToCanvas(result.expression, result.answer);
+    result.forEach((result) => {
+      renderLatexToCanvas(result.expression, result.answer);
+    });
   }, [result]);
 
   const renderLatexToCanvas = (expression: string, answer: string) => {
@@ -58,7 +82,6 @@ export default function Home() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  // Add useCallback to memoize undo and redo functions
   const undo = useCallback(() => {
     if (canvasStates.length <= 1) return; // Keep at least initial state
 
@@ -126,7 +149,7 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [undo, redo]); // Dependencies for the event listener
+  }, [undo, redo]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -161,6 +184,41 @@ export default function Home() {
     if (!ctx) return;
     ctx.strokeStyle = color;
     ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+    ctx.stroke();
+  };
+
+  const startDrawingTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top + TOUCH_Y_OFFSET;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const drawTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top + TOUCH_Y_OFFSET;
+
+    ctx.strokeStyle = color;
+    ctx.lineTo(x, y);
     ctx.stroke();
   };
 
@@ -228,7 +286,10 @@ export default function Home() {
 
       data.data.forEach((res: ImageResponse) => {
         setTimeout(() => {
-          setResult({ expression: res.expr, answer: res.result });
+          setResult((prev) => [
+            ...(prev || []),
+            { expression: res.expr, answer: res.result },
+          ]);
         }, 200);
       });
     } catch (err) {
@@ -254,6 +315,9 @@ export default function Home() {
           onMouseOut={stopDrawing}
           onMouseUp={stopDrawing}
           onMouseMove={draw}
+          onTouchStart={startDrawingTouch}
+          onTouchEnd={stopDrawing}
+          onTouchMove={drawTouch}
           className="absolute top-0 left-0 w-full h-full bg-black"
         />
 

@@ -32,7 +32,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn("antialiased", poppins.className, roboto.variable)}>
         <Toaster richColors position="top-right" />
-        <main className="min-h-screen">{children}</main>
+        <main className="">{children}</main>
       </body>
     </html>
   );
