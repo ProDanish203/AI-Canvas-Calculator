@@ -21,6 +21,25 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "AI - Fun Calculator",
   description: "AI - Fun Calculator",
+  authors: [
+    { name: "Danish Siddiqui", url: "https://danish-siddiqui.vercel.app" },
+  ],
+  creator: "Danish Siddiqui",
+  publisher: "Danish Siddiqui",
+  icons: {
+    icon: [
+      {
+        media: "(prefers-color-scheme: light)",
+        url: "/icon.png",
+        href: "/icon.png",
+      },
+      {
+        media: "(prefers-color-scheme: dark)",
+        url: "/icon.png",
+        href: "/icon.png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
