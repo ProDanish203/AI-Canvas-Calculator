@@ -10,6 +10,7 @@ import axios from "axios";
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isPending, setIsPending] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState("#ffffff");
   const [result, setResult] = useState<GeneratedResult[]>();
@@ -104,6 +105,8 @@ export default function Home() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
     };
+    setLatexExpr([]);
+    setResult(undefined);
   }, [canvasStates, setCanvasStates, setRedoStates]);
 
   const redo = useCallback(() => {
@@ -240,6 +243,7 @@ export default function Home() {
 
   const getResults = async () => {
     try {
+      setIsPending(true);
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -294,6 +298,8 @@ export default function Home() {
       });
     } catch (err) {
       toast.error("Error in getting results");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -306,6 +312,7 @@ export default function Home() {
         getResults={getResults}
         performUndo={undo}
         performRedo={redo}
+        isPending={isPending}
       />
       <div className="relative flex-1">
         <canvas

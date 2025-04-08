@@ -1,7 +1,8 @@
+"use client";
 import React from "react";
 import { Button } from "../ui/button";
 import { COLORS } from "@/lib/constants";
-import { RedoIcon, UndoIcon } from "lucide-react";
+import { Loader2Icon, RedoIcon, UndoIcon } from "lucide-react";
 
 interface TopbarProps {
   setColor: (color: string) => void;
@@ -10,6 +11,7 @@ interface TopbarProps {
   getResults: () => void;
   performUndo: () => void;
   performRedo: () => void;
+  isPending: boolean;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
@@ -19,6 +21,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   getResults,
   performUndo,
   performRedo,
+  isPending,
 }) => {
   return (
     <div className="z-10 flex max-md:flex-col max-md:py-4 items-center justify-between gap-2 sm:px-10 px-2 h-[80px] bg-black">
@@ -62,8 +65,9 @@ export const Topbar: React.FC<TopbarProps> = ({
       <Button
         className="max-md:hidden px-10 bg-green-600 hover:bg-green-700"
         onClick={getResults}
+        disabled={isPending}
       >
-        Run
+        {isPending ? <Loader2Icon className="animate-spin w-4 h-4" /> : "Run"}
       </Button>
     </div>
   );
